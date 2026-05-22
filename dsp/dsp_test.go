@@ -97,3 +97,33 @@ func TestLinearToUlawToLinear(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkUlawToLinear(b *testing.B) {
+	u := make([]byte, 4096)
+	l := make([]int16, 4096)
+	for i := 0; i < 4096; i++ {
+		u[i] = byte(i)
+	}
+	b.ResetTimer()
+	b.SetBytes(4096)
+	for i := 0; i <= b.N; i++ {
+		for j := 0; j < 4096; j++ {
+			l[j] = int16(dsp.UlawToLinear(int64(u[j])))
+		}
+	}
+}
+
+func BenchmarkLinearToUlaw(b *testing.B) {
+	l := make([]int16, 4096)
+	u := make([]byte, 4096)
+	for i := 0; i < 4096; i++ {
+		l[i] = int16(i)
+	}
+	b.ResetTimer()
+	b.SetBytes(2 * 4096)
+	for i := 0; i <= b.N; i++ {
+		for j := 0; j < 4096; j++ {
+			u[j] = byte(dsp.LinearToUlaw(int64(l[j])))
+		}
+	}
+}
