@@ -102,7 +102,7 @@ func (rs *Session) Send(frame *Frame) (err error) {
 	rs.Header.TS += 160
 	rs.Header.Seq++
 	for n := 0; n < 160; n++ {
-		buf[HeaderSize+n] = byte(dsp.LinearToUlaw(int64(frame[n])))
+		buf[HeaderSize+n] = dsp.LinearToUlaw(frame[n])
 	}
 	_, err = rs.Sock.WriteTo(buf, rs.Peer)
 	return
@@ -211,7 +211,7 @@ func receiver(sock *net.UDPConn, c chan<- *Frame, e chan<- error, r <-chan *Fram
 			continue
 		}
 		for n := 0; n < 160; n++ {
-			frame[n] = int16(dsp.UlawToLinear(int64(buf[HeaderSize+n])))
+			frame[n] = dsp.UlawToLinear(buf[HeaderSize+n])
 		}
 		c <- frame
 		frame = <-r

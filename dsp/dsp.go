@@ -16,16 +16,48 @@
 
 package dsp
 
+import (
+	"math/bits"
+)
+
 // Mixes together two audio frames containing 160 samples. Uses saturation
 // adding so you don't hear clipping if ppl talk loud. Uses 128-bit SIMD
 // instructions so we can add eight numbers at the same time.
 func L16MixSat160(dst, src *int16)
 
-// Compresses a PCM audio sample into a G.711 μ-Law sample. The BSR instruction
-// is what makes this code fast.
-//
-// TODO(jart): How do I make assembly use proper types?
-func LinearToUlaw(linear int64) (ulaw int64)
+const ulawBias = 0x84
+
+// Compresses a PCM audio sample into a G.711 μ-Law sample.
+func LinearToUlaw(linear int16) byte {
+	var sample int32
+	var mask byte
+	if linear >= 0 {
+		sample = int32(linear) + ulawBias
+		mask = byte(0xff)
+	} else {
+		sample = ulawBias - int32(linear)
+		mask = 0x7F
+	}
+
+	// segment = floor(log2(sample|0xFF)) - 7
+	segment := int32(31-bits.LeadingZeros32(uint32(sample|0xFF))) - 7
+	if segment >= 8 {
+		return mask ^ 0x7F
+	}
+
+	mantissa := (sample >> (segment + 3)) & 0x0F
+	return mask ^ byte((segment<<4)|mantissa)
+}
 
 // Turns a μ-Law byte back into an audio sample.
-func UlawToLinear(ulaw int64) (linear int64)
+func UlawToLinear(ulaw byte) int16 {
+	u := ^ulaw
+	sample := int32((u&0x0F)<<3) + ulawBias
+	exponent := (u & 0x70) >> 4
+	sample <<= exponent
+
+	if (u & 0x80) != 0 {
+		return int16(ulawBias - sample)
+	}
+	return int16(sample - ulawBias)
+}

@@ -40,7 +40,7 @@ func TestL16MixSat160(t *testing.T) {
 	}
 }
 
-var ulawTable = []int64{
+var ulawTable = []int16{
 	-32124, -31100, -30076, -29052, -28028, -27004, -25980, -24956, -23932,
 	-22908, -21884, -20860, -19836, -18812, -17788, -16764, -15996, -15484,
 	-14972, -14460, -13948, -13436, -12924, -12412, -11900, -11388, -10876,
@@ -82,7 +82,7 @@ func TestLinearToUlaw(t *testing.T) {
 
 func TestUlawToLinear(t *testing.T) {
 	for n := 0; n <= 255; n++ {
-		if dsp.UlawToLinear(int64(n)) != ulawTable[n] {
+		if dsp.UlawToLinear(byte(n)) != ulawTable[n] {
 			t.Error("omg")
 			return
 		}
@@ -108,7 +108,7 @@ func BenchmarkUlawToLinear(b *testing.B) {
 	b.SetBytes(4096)
 	for i := 0; i <= b.N; i++ {
 		for j := 0; j < 4096; j++ {
-			l[j] = int16(dsp.UlawToLinear(int64(u[j])))
+			l[j] = dsp.UlawToLinear(u[j])
 		}
 	}
 }
@@ -123,7 +123,7 @@ func BenchmarkLinearToUlaw(b *testing.B) {
 	b.SetBytes(2 * 4096)
 	for i := 0; i <= b.N; i++ {
 		for j := 0; j < 4096; j++ {
-			u[j] = byte(dsp.LinearToUlaw(int64(l[j])))
+			u[j] = dsp.LinearToUlaw(l[j])
 		}
 	}
 }
