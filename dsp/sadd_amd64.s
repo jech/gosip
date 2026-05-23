@@ -12,20 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define ULAW_BIAS $0x84
+#include "textflag.h"
 
-// func L16MixSat160(dst, src *int16)
-// Explanation: http://i.imgur.com/nejgQ41.jpg
-TEXT    ·L16MixSat160(SB),4,$0-16
+// func sadd(dst, src *int16, n int)
+TEXT	·sadd(SB),NOSPLIT,$0
 	MOVQ	dst+0(FP), AX
 	MOVQ	src+8(FP), BX
-	MOVQ	$19, CX
-moar:	MOVO	0(BX), X0
-	PADDSW  0(AX), X0
-	MOVO	X0, 0(AX)
+	MOVQ	n+16(FP), CX
+more:
+	CMPQ	CX, $8
+	JL	tail
+	MOVOU	0(BX), X0
+	MOVOU   0(AX), X1
+	PADDSW	X1, X0
+	MOVOU	X0, 0(AX)
 	ADDQ	$16, AX
 	ADDQ	$16, BX
+	SUBQ	$8, CX
+	JMP	more
+
+tail:
+	MOVL	$32767, R8
+	MOVL	$-32768, R9
+
+evenmore:
+	TESTQ	CX, CX
+	JZ	done
+	MOVWLSX	0(AX), DX
+	MOVWLSX	0(BX), SI
+	ADDL	SI, DX
+	CMPL	DX, $32767
+	CMOVLGE	R8, DX
+	CMPL	DX, $-32768
+	CMOVLLT	R9, DX
+	MOVW	DX, 0(AX)
+	ADDQ	$2, AX
+	ADDQ	$2, BX
 	DECQ	CX
-	CMPQ	CX, $0
-	JGE	moar
+	JMP	evenmore
+
+done:           
 	RET

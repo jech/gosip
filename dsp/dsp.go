@@ -20,11 +20,6 @@ import (
 	"math/bits"
 )
 
-// Mixes together two audio frames containing 160 samples. Uses saturation
-// adding so you don't hear clipping if ppl talk loud. Uses 128-bit SIMD
-// instructions so we can add eight numbers at the same time.
-func L16MixSat160(dst, src *int16)
-
 const ulawBias = 0x84
 
 // Compresses a PCM audio sample into a G.711 μ-Law sample.

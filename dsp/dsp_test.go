@@ -15,28 +15,65 @@
 package dsp_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/jart/gosip/dsp"
 )
 
-func TestL16MixSat160(t *testing.T) {
-	var x, y [160]int16
-	for n := 0; n < 160; n++ {
-		x[n] = int16(n)
-		y[n] = int16(666)
+func testSadd(t *testing.T, n int) {
+	x := make([]int16, n)
+	y := make([]int16, n)
+	for i := 0; i < n; i++ {
+		x[i] = int16(i)
+		y[i] = int16(666)
 	}
-	dsp.L16MixSat160(&x[0], &y[0])
-	for n := 0; n < 160; n++ {
-		want := int16(n + 666)
-		if x[n] != want {
-			t.Errorf("x[%v] = %v (wanted: %v)", n, x[n], want)
+	dsp.Sadd(x, y)
+	for i := 0; i < n; i++ {
+		want := int16(i + 666)
+		if x[i] != want {
+			t.Errorf("x[%v] = %v (wanted: %v)", i, x[i], want)
 			return
 		}
-		if y[n] != int16(666) {
-			t.Errorf("side effect y[%v] = %v", n, y[n])
+		if y[i] != int16(666) {
+			t.Errorf("side effect y[%v] = %v", i, y[i])
 			return
 		}
+	}
+}
+
+func TestSadd(t *testing.T) {
+	for n := range []int{
+		0, 3, 7, 8, 16, 32, 33,
+		160, 161, 162, 163, 164, 165, 166, 167, 168,
+	} {
+		t.Run(fmt.Sprintf("%d", n), func(t *testing.T) {
+			testSadd(t, n)
+		})
+	}
+}
+
+func TestSaddUnaligned(t *testing.T) {
+	x := make([]int16, 161)
+	y := make([]int16, 161)
+	dsp.Sadd(x[1:], y[1:])
+	dsp.Sadd(x[1:], y)
+	dsp.Sadd(x, y[1:])
+}
+
+func BenchmarkSadd(b *testing.B) {
+	x := make([]int16, 160)
+	y := make([]int16, 160)
+	for i := 0; i < 160; i++ {
+		x[i] = int16(i)
+		y[i] = int16(666)
+	}
+
+	b.ResetTimer()
+	b.SetBytes(160)
+
+	for i := 0; i < b.N; i++ {
+		dsp.Sadd(x, y)
 	}
 }
 
