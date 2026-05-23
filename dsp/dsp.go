@@ -56,3 +56,51 @@ func UlawToLinear(ulaw byte) int16 {
 	}
 	return int16(sample - ulawBias)
 }
+
+// Compresses a PCM audio sample into a G.711 A-law sample.
+func LinearToAlaw(linear int16) byte {
+	var sign byte
+	var sample int32
+
+	if linear >= 0 {
+		sign = 0x80
+		sample = int32(linear) >> 3
+	} else {
+		sign = 0x00
+		sample = int32(^linear) >> 3
+	}
+	if sample > 4095 {
+		sample = 4095
+	}
+
+	var alaw byte
+	if sample < 32 {
+		alaw = byte(sample >> 1)
+	} else {
+		segment := int32(31-bits.LeadingZeros32(uint32(sample))) - 4
+		mantissa := (sample >> segment) & 0x0F
+		alaw = byte((segment << 4) | mantissa)
+	}
+
+	return (alaw | sign) ^ 0x55
+}
+
+// Turns an A-law byte back into an audio sample.
+func AlawToLinear(alaw byte) int16 {
+	a := alaw ^ 0x55
+	segment := (a >> 4) & 0x07
+	mantissa := int32(a & 0x0F)
+
+	var sample int32
+	if segment == 0 {
+		sample = (mantissa << 1) | 1
+	} else {
+		sample = ((mantissa | 0x10) << segment) | (1 << (segment - 1))
+	}
+	sample <<= 3
+
+	if a&0x80 != 0 {
+		return int16(sample)
+	}
+	return int16(-sample)
+}
