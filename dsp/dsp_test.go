@@ -56,9 +56,21 @@ func TestSadd(t *testing.T) {
 func TestSaddUnaligned(t *testing.T) {
 	x := make([]int16, 161)
 	y := make([]int16, 161)
+	for i := 0; i < 161; i++ {
+		y[i] = int16(i)
+	}
 	dsp.Sadd(x[1:], y[1:])
+	if x[0] != 0 || x[1] != 1 || x[160] != 160 {
+		t.Errorf("omg")
+	}
 	dsp.Sadd(x[1:], y)
+	if x[0] != 0 || x[1] != 1 || x[160] != 160+159 {
+		t.Errorf("omg")
+	}
 	dsp.Sadd(x, y[1:])
+	if x[0] != 1 || x[1] != 3 || x[160] != 160+159 {
+		t.Errorf("omg %v", x[160])
+	}
 }
 
 func BenchmarkSadd(b *testing.B) {
@@ -70,10 +82,13 @@ func BenchmarkSadd(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	b.SetBytes(160)
+	b.SetBytes(160 * 2)
 
 	for i := 0; i < b.N; i++ {
 		dsp.Sadd(x, y)
+	}
+	if b.N > 100 && (x[0] != 0x7FFF || x[159] != 0x7FFF) {
+		b.Errorf("omg")
 	}
 }
 
@@ -200,6 +215,9 @@ func BenchmarkUlawToLinear(b *testing.B) {
 		for j := 0; j < 4096; j++ {
 			l[j] = dsp.UlawToLinear(u[j])
 		}
+		if l[0]+l[4095] != -32124 {
+			b.Errorf("omg")
+		}
 	}
 }
 
@@ -214,6 +232,9 @@ func BenchmarkLinearToUlaw(b *testing.B) {
 	for i := 0; i <= b.N; i++ {
 		for j := 0; j < 4096; j++ {
 			u[j] = dsp.LinearToUlaw(l[j])
+		}
+		if u[0]+u[4095] != 174 {
+			b.Errorf("omg")
 		}
 	}
 }
@@ -230,12 +251,15 @@ func BenchmarkAlawToLinear(b *testing.B) {
 		for j := 0; j < 4096; j++ {
 			l[j] = dsp.AlawToLinear(u[j])
 		}
+		if l[0]+l[4095] != -4656 {
+			b.Errorf("omg")
+		}
 	}
 }
 
 func BenchmarkLinearToAlaw(b *testing.B) {
 	l := make([]int16, 4096)
-	u := make([]byte, 4096)
+	a := make([]byte, 4096)
 	for i := 0; i < 4096; i++ {
 		l[i] = int16(i)
 	}
@@ -243,7 +267,10 @@ func BenchmarkLinearToAlaw(b *testing.B) {
 	b.SetBytes(2 * 4096)
 	for i := 0; i <= b.N; i++ {
 		for j := 0; j < 4096; j++ {
-			u[j] = dsp.LinearToAlaw(l[j])
+			a[j] = dsp.LinearToAlaw(l[j])
+		}
+		if a[0]+a[4095] != 111 {
+			b.Errorf("omg")
 		}
 	}
 }
